@@ -3,12 +3,13 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { getCSV, initCSV, addRow, downloadCSV, importCSVFromFile, type CSVData } from "@/lib/csv";
+import { useToastStore } from "@/store/toastStore";
 
 export default function DatabaseManager() {
   const { data: session } = useSession();
   const [csvData, setCsvData] = useState<CSVData | null>(null);
-  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const { addToast } = useToastStore();
 
   const email = session?.user?.email;
   const loadData = () => email && getCSV(email).then(setCsvData).catch(() => setCsvData(null));
@@ -19,20 +20,22 @@ export default function DatabaseManager() {
     }
   }, [email]);
 
-  const handleAction = async (action: () => Promise<void>, successMsg: string) => {
+  const handleAction = async (action: () => Promise<void>, successMsg: string, errorMsg: string = "Ошибка") => {
     if (!email) return;
     try {
       await action();
       await loadData();
-      setMessage(successMsg);
+      addToast(successMsg, "success");
     } catch (error) {
-      setMessage(`Ошибка: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      addToast(`${errorMsg}: ${errorMessage}`, "error");
     }
   };
 
   const initCSVFile = () => handleAction(
     () => initCSV(email, ["id", "name", "created_at"]),
-    "CSV файл инициализирован успешно"
+    "CSV файл инициализирован успешно",
+    "Ошибка инициализации CSV"
   );
 
   const addSampleRow = () => csvData && handleAction(
@@ -41,20 +44,26 @@ export default function DatabaseManager() {
       name: `Пользователь ${csvData.rows.length + 1}`,
       created_at: new Date().toISOString(),
     }),
-    "Строка добавлена успешно"
+    "Строка добавлена успешно",
+    "Ошибка добавления строки"
   );
 
   const exportCSV = () => {
     if (!csvData) return;
-    downloadCSV(csvData, `data_${email?.replace("@", "_") || "export"}.csv`);
-    setMessage("CSV файл экспортирован");
+    try {
+      downloadCSV(csvData, `data_${email?.replace("@", "_") || "export"}.csv`);
+      addToast("CSV файл экспортирован", "success");
+    } catch (error) {
+      addToast("Ошибка экспорта CSV", "error");
+    }
   };
 
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!email || !e.target.files?.[0]) return;
     handleAction(
       () => importCSVFromFile(email, e.target.files![0]),
-      "CSV файл импортирован успешно"
+      "CSV файл импортирован успешно",
+      "Ошибка импорта CSV"
     );
   };
 
@@ -112,7 +121,6 @@ export default function DatabaseManager() {
         </div>
       )}
 
-      {message && <p className="text-xs text-zinc-600 dark:text-zinc-400 sm:text-sm break-words">{message}</p>}
     </div>
   );
 }
