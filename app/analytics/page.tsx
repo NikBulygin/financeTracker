@@ -9,7 +9,7 @@ import BottomNav from "@/components/BottomNav";
 import { getTransactions } from "@/lib/transactions";
 import { groupByMonth, groupByCategory, calculateTotals } from "@/lib/analytics";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend } from "@/components/ui/chart";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid } from "recharts";
 import type { ChartConfig } from "@/components/ui/chart";
 
 export default function AnalyticsPage() {
@@ -64,11 +64,10 @@ function AnalyticsContent() {
   }, [session]);
 
   const monthlyData = groupByMonth(transactions, months, includePlanned, forwardRange);
-  const categoryData = groupByCategory(transactions);
   const totals = calculateTotals(transactions, includePlanned);
 
-  const incomeCategories = groupByCategory(transactions, "income").slice(0, 5);
-  const expenseCategories = groupByCategory(transactions, "expense").slice(0, 5);
+  const incomeCategories = groupByCategory(transactions, "income", includePlanned).slice(0, 5);
+  const expenseCategories = groupByCategory(transactions, "expense", includePlanned).slice(0, 5);
 
   const COLORS = [
     "hsl(var(--chart-1))", // Зеленый
@@ -280,9 +279,9 @@ function AnalyticsContent() {
                       labelLine={false}
                       className="text-xs"
                     >
-                      {expenseCategories.map((_, index) => (
+                      {expenseCategories.map((cat, index) => (
                         <Cell
-                          key={`cell-${index}`}
+                          key={`expense-${cat.category}-${index}`}
                           fill={COLORS[(index + 1) % COLORS.length]}
                           stroke="transparent"
                         />
@@ -331,9 +330,9 @@ function AnalyticsContent() {
                       labelLine={false}
                       className="text-xs"
                     >
-                      {incomeCategories.map((_, index) => (
+                      {incomeCategories.map((cat, index) => (
                         <Cell
-                          key={`cell-${index}`}
+                          key={`income-${cat.category}-${index}`}
                           fill={COLORS[index % COLORS.length]}
                           stroke="transparent"
                         />

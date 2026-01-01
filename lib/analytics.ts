@@ -93,12 +93,19 @@ export function groupByMonth(
 // Группировка по категориям
 export function groupByCategory(
   transactions: Transaction[],
-  type?: "income" | "expense"
+  type?: "income" | "expense",
+  includePlanned: boolean = false
 ): CategoryData[] {
   const categoryMap = new Map<string, number>();
 
   transactions.forEach((tx) => {
-    if (tx.is_planned) return;
+    // Фильтруем планируемые операции
+    if (!includePlanned && tx.is_planned) return;
+    // Если включены планируемые, берем только pending
+    if (includePlanned && tx.is_planned && tx.status !== "pending") return;
+    // Исключаем отклоненные транзакции
+    if (tx.status === "rejected") return;
+    
     if (type && tx.type !== type) return;
     
     const key = `${tx.type}_${tx.category}`;
