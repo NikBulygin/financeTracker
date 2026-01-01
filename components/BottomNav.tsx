@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { path: "/analytics", label: "Графики", icon: "📊" },
   { path: "/investments", label: "Инвестиции", icon: "📈" },
   { path: "/rates", label: "Курсы", icon: "💱" },
+  { path: "/profile", label: "Профиль", icon: "👤" },
 ];
 
 export default function BottomNav() {

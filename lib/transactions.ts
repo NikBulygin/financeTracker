@@ -57,8 +57,8 @@ export async function getTransactions(email: string): Promise<Transaction[]> {
       date: String(row.date || ""),
       category: String(row.category || ""),
       description: String(row.description || ""),
-      is_planned: row.is_planned === true || row.is_planned === "true",
-      status: (row.status as TransactionStatus) || (row.is_planned === true || row.is_planned === "true" ? "pending" : "completed"),
+      is_planned: String(row.is_planned) === "true" || row.is_planned === 1,
+      status: (row.status as TransactionStatus) || (String(row.is_planned) === "true" || row.is_planned === 1 ? "pending" : "completed"),
       from_asset: row.from_asset ? String(row.from_asset) : undefined,
       to_asset: row.to_asset ? String(row.to_asset) : undefined,
       exchange_rate: row.exchange_rate ? Number(row.exchange_rate) : undefined,
@@ -90,7 +90,7 @@ export async function addTransaction(
     date: newTransaction.date,
     category: newTransaction.category,
     description: newTransaction.description,
-    is_planned: newTransaction.is_planned,
+    is_planned: newTransaction.is_planned ? "true" : "false",
     status: newTransaction.status,
     from_asset: newTransaction.from_asset || null,
     to_asset: newTransaction.to_asset || null,
@@ -116,9 +116,27 @@ export async function updateTransaction(
   if (index === -1) return null;
 
   const existing = data.rows[index];
+  
+  // Конвертируем boolean в строку для CSV перед созданием объекта
+  const convertedUpdates: Partial<CSVRow> = {};
+  if (updates.type !== undefined) convertedUpdates.type = updates.type;
+  if (updates.amount !== undefined) convertedUpdates.amount = updates.amount;
+  if (updates.date !== undefined) convertedUpdates.date = updates.date;
+  if (updates.category !== undefined) convertedUpdates.category = updates.category;
+  if (updates.description !== undefined) convertedUpdates.description = updates.description;
+  if (updates.is_planned !== undefined) {
+    convertedUpdates.is_planned = updates.is_planned ? "true" : "false";
+  }
+  if (updates.status !== undefined) convertedUpdates.status = updates.status;
+  if (updates.from_asset !== undefined) convertedUpdates.from_asset = updates.from_asset;
+  if (updates.to_asset !== undefined) convertedUpdates.to_asset = updates.to_asset;
+  if (updates.exchange_rate !== undefined) convertedUpdates.exchange_rate = updates.exchange_rate;
+  if (updates.currency !== undefined) convertedUpdates.currency = updates.currency;
+  if (updates.amount_usd !== undefined) convertedUpdates.amount_usd = updates.amount_usd;
+  
   const updated: CSVRow = {
     ...existing,
-    ...updates,
+    ...convertedUpdates,
     id: existing.id as string,
   };
 
@@ -132,8 +150,8 @@ export async function updateTransaction(
     date: String(updated.date || ""),
     category: String(updated.category || ""),
     description: String(updated.description || ""),
-    is_planned: updated.is_planned === true || updated.is_planned === "true",
-    status: (updated.status as TransactionStatus) || (updated.is_planned === true || updated.is_planned === "true" ? "pending" : "completed"),
+    is_planned: String(updated.is_planned) === "true" || updated.is_planned === 1,
+    status: (updated.status as TransactionStatus) || (String(updated.is_planned) === "true" || updated.is_planned === 1 ? "pending" : "completed"),
     from_asset: updated.from_asset ? String(updated.from_asset) : undefined,
     to_asset: updated.to_asset ? String(updated.to_asset) : undefined,
     exchange_rate: updated.exchange_rate ? Number(updated.exchange_rate) : undefined,

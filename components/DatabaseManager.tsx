@@ -12,15 +12,25 @@ export default function DatabaseManager() {
   const { addToast } = useToastStore();
 
   const email = session?.user?.email;
-  const loadData = () => email && getCSV(email).then(setCsvData).catch(() => setCsvData(null));
+  const loadData = async () => {
+    if (!email) return;
+    try {
+      const data = await getCSV(email);
+      setCsvData(data);
+    } catch {
+      setCsvData(null);
+    }
+  };
 
   useEffect(() => {
     if (email && typeof window !== "undefined") {
       loadData().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
   }, [email]);
 
-  const handleAction = async (action: () => Promise<void>, successMsg: string, errorMsg: string = "Ошибка") => {
+  const handleAction = async (action: () => Promise<any>, successMsg: string, errorMsg: string = "Ошибка") => {
     if (!email) return;
     try {
       await action();
@@ -33,20 +43,25 @@ export default function DatabaseManager() {
   };
 
   const initCSVFile = () => handleAction(
-    () => initCSV(email, ["id", "name", "created_at"]),
+    async () => {
+      await initCSV(email!, ["id", "name", "created_at"]);
+    },
     "CSV файл инициализирован успешно",
     "Ошибка инициализации CSV"
   );
 
-  const addSampleRow = () => csvData && handleAction(
-    () => addRow(email, {
-      id: csvData.rows.length + 1,
-      name: `Пользователь ${csvData.rows.length + 1}`,
-      created_at: new Date().toISOString(),
-    }),
-    "Строка добавлена успешно",
-    "Ошибка добавления строки"
-  );
+  const addSampleRow = () => {
+    if (!csvData || !email) return;
+    handleAction(
+      () => addRow(email, {
+        id: csvData.rows.length + 1,
+        name: `Пользователь ${csvData.rows.length + 1}`,
+        created_at: new Date().toISOString(),
+      }),
+      "Строка добавлена успешно",
+      "Ошибка добавления строки"
+    );
+  };
 
   const exportCSV = () => {
     if (!csvData) return;

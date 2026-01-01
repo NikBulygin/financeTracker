@@ -8,7 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNav from "@/components/BottomNav";
 import { getTransactions } from "@/lib/transactions";
 import { groupByMonth, groupByCategory, calculateTotals } from "@/lib/analytics";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend } from "@/components/ui/chart";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import type { ChartConfig } from "@/components/ui/chart";
 
@@ -202,7 +202,7 @@ function AnalyticsContent() {
                   width={60}
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartLegend />
                 <Bar dataKey="income" fill="hsl(var(--chart-1))" radius={4} />
                 <Bar dataKey="expense" fill="hsl(var(--chart-2))" radius={4} />
               </BarChart>
@@ -233,7 +233,7 @@ function AnalyticsContent() {
                   width={60}
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartLegend />
                 <Line
                   type="monotone"
                   dataKey="cumulative"
@@ -267,13 +267,13 @@ function AnalyticsContent() {
                 >
                   <PieChart>
                     <Pie
-                      data={expenseCategories}
+                      data={expenseCategories as any}
                       dataKey="amount"
                       nameKey="category"
                       cx="50%"
                       cy="50%"
                       outerRadius={60}
-                      label={({ category, percent }) => {
+                      label={({ category, percent }: any) => {
                         const label = `${category}: ${(percent * 100).toFixed(0)}%`;
                         return label.length > 20 ? `${category.substring(0, 15)}...: ${(percent * 100).toFixed(0)}%` : label;
                       }}
@@ -318,13 +318,13 @@ function AnalyticsContent() {
                 >
                   <PieChart>
                     <Pie
-                      data={incomeCategories}
+                      data={incomeCategories as any}
                       dataKey="amount"
                       nameKey="category"
                       cx="50%"
                       cy="50%"
                       outerRadius={60}
-                      label={({ category, percent }) => {
+                      label={({ category, percent }: any) => {
                         const label = `${category}: ${(percent * 100).toFixed(0)}%`;
                         return label.length > 20 ? `${category.substring(0, 15)}...: ${(percent * 100).toFixed(0)}%` : label;
                       }}

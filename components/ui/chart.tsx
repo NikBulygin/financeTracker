@@ -110,6 +110,12 @@ const ChartTooltipContent = React.forwardRef<
       nameKey?: string
       labelKey?: string
       allowEscapeViewBox?: unknown
+      payload?: any
+      active?: boolean
+      label?: any
+      labelFormatter?: any
+      labelClassName?: string
+      formatter?: any
     }
 >(
   (
@@ -186,7 +192,7 @@ const ChartTooltipContent = React.forwardRef<
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item, index) => {
+          {payload.map((item: any, index: number) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = config[key as keyof typeof config]
             const indicatorColor = item.payload.fill || item.color
@@ -261,8 +267,9 @@ const ChartLegend = RechartsPrimitive.Legend
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
+  React.ComponentProps<"div"> & {
+      payload?: any[]
+      verticalAlign?: "top" | "bottom"
       hideIcon?: boolean
       nameKey?: string
       iconSize?: unknown
