@@ -5,6 +5,7 @@ import { Transaction, TransactionType, addTransaction, updateTransaction } from 
 import { format } from "date-fns";
 import { useToastStore } from "@/store/toastStore";
 import { convertToUSD, getCryptoRate, getExchangeRates } from "@/lib/exchange";
+import { CURRENCY_CODES, CRYPTO_CODES, SUPPORTED_STOCKS } from "@/lib/constants";
 
 interface TransactionFormProps {
   email: string;
@@ -86,9 +87,9 @@ export default function TransactionForm({
   }, [type, isExchange]);
 
   // Популярные валюты и активы
-  const currencies = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"];
-  const cryptoAssets = ["BTC", "ETH", "USDT", "BNB", "SOL", "XRP", "ADA", "DOGE"];
-  const stockAssets = ["SBER", "GAZP", "YNDX", "AAPL", "GOOGL", "MSFT", "TSLA", "NVDA"];
+  const currencies = CURRENCY_CODES;
+  const cryptoAssets = CRYPTO_CODES;
+  const stockAssets = SUPPORTED_STOCKS;
 
   const fetchExchangeRate = async () => {
     if (!fromAsset || !toAsset || !amount) return;
@@ -98,10 +99,10 @@ export default function TransactionForm({
       let rate = 0;
       
       // Определяем тип актива
-      const isFromCrypto = cryptoAssets.includes(fromAsset.toUpperCase());
-      const isToCrypto = cryptoAssets.includes(toAsset.toUpperCase());
-      const isFromStock = stockAssets.includes(fromAsset.toUpperCase());
-      const isToStock = stockAssets.includes(toAsset.toUpperCase());
+      const isFromCrypto = (cryptoAssets as readonly string[]).includes(fromAsset.toUpperCase());
+      const isToCrypto = (cryptoAssets as readonly string[]).includes(toAsset.toUpperCase());
+      const isFromStock = (stockAssets as readonly string[]).includes(fromAsset.toUpperCase());
+      const isToStock = (stockAssets as readonly string[]).includes(toAsset.toUpperCase());
       
       if (isFromCrypto || isToCrypto) {
         // Для криптовалют
@@ -116,7 +117,7 @@ export default function TransactionForm({
           const toRate = isToCrypto ? await getCryptoRate(toAsset.toUpperCase()) : 1;
           rate = fromRate / toRate;
         }
-      } else if (currencies.includes(fromAsset.toUpperCase()) && currencies.includes(toAsset.toUpperCase())) {
+      } else if ((currencies as readonly string[]).includes(fromAsset.toUpperCase()) && (currencies as readonly string[]).includes(toAsset.toUpperCase())) {
         // Для валют
         const rates = await getExchangeRates("USD");
         const fromRate = rates[fromAsset.toUpperCase()] || 1;

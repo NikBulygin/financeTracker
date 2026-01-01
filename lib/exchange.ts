@@ -1,5 +1,7 @@
 // API для получения курсов валют и конвертации
 
+import { CURRENCY_CODES } from "./constants";
+
 const EXCHANGE_API_URL = "https://api.exchangerate-api.com/v4/latest";
 
 export interface ExchangeRates {
@@ -37,8 +39,8 @@ export async function getExchangeRates(baseCurrency: string = "USD"): Promise<Ex
     if (ratesCache) {
       return ratesCache.rates;
     }
-    // Дефолтные курсы (примерные)
-    return {
+    // Дефолтные курсы (примерные) - используем все валюты из constants
+    const defaultRates: Record<string, number> = {
       USD: 1,
       EUR: 0.92,
       RUB: 92,
@@ -47,6 +49,13 @@ export async function getExchangeRates(baseCurrency: string = "USD"): Promise<Ex
       CNY: 7.2,
       KZT: 450,
     };
+    // Убеждаемся, что все валюты из constants присутствуют
+    CURRENCY_CODES.forEach(code => {
+      if (!defaultRates[code]) {
+        defaultRates[code] = 1; // Fallback значение
+      }
+    });
+    return defaultRates;
   }
 }
 

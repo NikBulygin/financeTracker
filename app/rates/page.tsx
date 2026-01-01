@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNav from "@/components/BottomNav";
 import { getExchangeRates, getCryptoRate } from "@/lib/exchange";
 import { useToastStore } from "@/store/toastStore";
+import { SUPPORTED_CURRENCIES, SUPPORTED_CRYPTOS } from "@/lib/constants";
 
 interface CurrencyRate {
   code: string;
@@ -39,18 +40,8 @@ function RatesContent() {
   const [baseCurrency, setBaseCurrency] = useState("USD");
   const { addToast } = useToastStore();
 
-  const currencyList = [
-    { code: "KZT", name: "Казахстанский тенге" },
-    { code: "RUB", name: "Российский рубль" },
-    { code: "USD", name: "Американский доллар" },
-    { code: "CNY", name: "Китайский юань" },
-  ];
-
-  const cryptoList = [
-    { code: "USDT", name: "Tether" },
-    { code: "ETH", name: "Ethereum" },
-    { code: "BTC", name: "Bitcoin" },
-  ];
+  const currencyList = SUPPORTED_CURRENCIES;
+  const cryptoList = SUPPORTED_CRYPTOS;
 
   const loadRates = async () => {
     setLoading(true);

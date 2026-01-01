@@ -3,9 +3,32 @@
 // Отключаем SSR для этой страницы
 export const dynamic = 'force-dynamic';
 
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      router.push("/");
+    }
+  }, [session, status, router]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black p-4">
+        <p className="text-base text-zinc-600 dark:text-zinc-400">Загрузка...</p>
+      </div>
+    );
+  }
+
+  if (status === "authenticated") {
+    return null; // Редирект происходит через useEffect
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black p-4">
       <main className="flex w-full max-w-md flex-col items-center gap-6">

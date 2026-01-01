@@ -8,6 +8,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNav from "@/components/BottomNav";
 import { useToastStore } from "@/store/toastStore";
 import { getCSV, getVersion } from "@/lib/csv";
+import DriveSync from "@/components/DriveSync";
+import { useAutoDriveSync } from "@/hooks/useAutoDriveSync";
 
 export default function ProfilePage() {
   return (
@@ -23,6 +25,9 @@ function ProfileContent() {
   const [csvVersion, setCsvVersion] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const { addToast } = useToastStore();
+  
+  // Включаем автоматическую синхронизацию
+  useAutoDriveSync(true);
 
   const email = session?.user?.email || "";
   const name = session?.user?.name || "";
@@ -132,6 +137,8 @@ function ProfileContent() {
             )}
           </div>
         </div>
+
+        <DriveSync />
       </main>
       <BottomNav />
     </div>
