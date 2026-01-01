@@ -13,6 +13,8 @@ export function useAutoDriveSync(enabled: boolean = true) {
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isSyncingRef = useRef(false);
   const hasDownloadedRef = useRef(false);
+  const hasLoadedStatusRef = useRef(false);
+  const emailRef = useRef<string | null>(null);
 
   const downloadFromDrive = async () => {
     if (!session?.user?.email || !fileId || isSyncingRef.current) {
@@ -119,7 +121,23 @@ export function useAutoDriveSync(enabled: boolean = true) {
 
   useEffect(() => {
     if (!enabled || !session?.user?.email) {
+      // Сбрасываем флаги при отсутствии сессии
+      hasLoadedStatusRef.current = false;
+      hasDownloadedRef.current = false;
+      lastDataHashRef.current = null;
+      emailRef.current = null;
       return;
+    }
+
+    // Сбрасываем флаг загрузки статуса при изменении email
+    // Это позволит загружать статус при обновлении страницы или смене пользователя
+    const currentEmail = session.user.email;
+    
+    if (emailRef.current !== currentEmail) {
+      hasLoadedStatusRef.current = false;
+      hasDownloadedRef.current = false;
+      lastDataHashRef.current = null;
+      emailRef.current = currentEmail;
     }
 
     // Простая функция хеширования для Unicode строк
@@ -135,16 +153,30 @@ export function useAutoDriveSync(enabled: boolean = true) {
 
     // Функция для загрузки статуса и файла при первом запуске
     const loadDriveStatus = async () => {
+      // Загружаем статус только один раз при монтировании
+      if (hasLoadedStatusRef.current) {
+        return;
+      }
+      
+      hasLoadedStatusRef.current = true;
+      
       try {
         const response = await fetch("/api/drive/status");
         if (response.ok) {
           const data = await response.json();
           updateFromResponse(data);
           
-          // Если есть fileId и файл еще не загружался - загружаем
-          if (data.fileId && !hasDownloadedRef.current) {
+          // Если есть fileId - загружаем файл из Drive
+          if (data.fileId) {
+            // Сбрасываем флаг загрузки, чтобы загрузить файл
+            hasDownloadedRef.current = false;
             await downloadFromDrive();
             // После загрузки обновляем хеш
+            const csvData = await getCSV(session.user.email!);
+            const dataString = JSON.stringify(csvData);
+            lastDataHashRef.current = simpleHash(dataString);
+          } else {
+            // Если файла нет в Drive, инициализируем хеш текущих данных
             const csvData = await getCSV(session.user.email!);
             const dataString = JSON.stringify(csvData);
             lastDataHashRef.current = simpleHash(dataString);
@@ -152,6 +184,14 @@ export function useAutoDriveSync(enabled: boolean = true) {
         }
       } catch (error) {
         console.error("Error loading drive status:", error);
+        // Даже при ошибке инициализируем хеш
+        try {
+          const csvData = await getCSV(session.user.email!);
+          const dataString = JSON.stringify(csvData);
+          lastDataHashRef.current = simpleHash(dataString);
+        } catch (e) {
+          console.error("Error initializing hash:", e);
+        }
       }
     };
 

@@ -15,8 +15,25 @@ export default function DriveSync() {
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  // Статус загружается автоматически через useAutoDriveSync
-  // Этот эффект больше не нужен, но оставляем для совместимости
+  // Загружаем статус при монтировании компонента для отображения
+  useEffect(() => {
+    const loadStatus = async () => {
+      if (!session?.user?.email) return;
+
+      try {
+        const response = await fetch("/api/drive/status");
+        if (response.ok) {
+          const data = await response.json();
+          updateFromResponse(data);
+        }
+      } catch (error) {
+        console.error("Error loading drive status:", error);
+      }
+    };
+    
+    loadStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   const handleSave = async () => {
     if (!session?.user?.email) {

@@ -24,6 +24,8 @@ function HomeContent() {
   const { session } = useAuthStore();
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Автоматическая синхронизация работает глобально через Providers
 
   const loadAlerts = async () => {
     if (!session?.user?.email) return;
