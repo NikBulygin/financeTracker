@@ -31,9 +31,16 @@ export async function POST(request: NextRequest) {
     const email = session.user.email;
     const fileName = `finance_data_${email.replace("@", "_")}.csv`;
 
-    // Получаем CSV данные
-    const csvData = await getCSV(email);
-    const csvContent = stringifyCSV(csvData);
+    // Получаем CSV контент из тела запроса
+    const body = await request.json();
+    const csvContent = body.csvContent;
+
+    if (!csvContent || typeof csvContent !== "string") {
+      return NextResponse.json(
+        { error: "CSV content is required" },
+        { status: 400 }
+      );
+    }
 
     // Проверяем, есть ли уже файл в Drive
     let existingFileId = await getDriveFileId(email);

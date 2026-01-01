@@ -180,7 +180,7 @@ function AnalyticsContent() {
 
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 overflow-hidden">
           <h2 className="mb-4 text-lg font-semibold">Доходы и расходы по месяцам</h2>
-          <div className="w-full max-w-full overflow-x-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+          <div className="w-full max-w-full overflow-x-auto" style={{ maxHeight: "calc(100vh - 300px)", minWidth: "350px", minHeight: "250px" }}>
             <ChartContainer config={incomeExpenseConfig} className="h-[250px] sm:h-[280px] w-full min-w-[350px] sm:min-w-[600px] max-w-full">
               <BarChart data={monthlyData} accessibilityLayer>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
@@ -211,7 +211,7 @@ function AnalyticsContent() {
 
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4 overflow-hidden">
           <h2 className="mb-4 text-lg font-semibold">Накопления по месяцам</h2>
-          <div className="w-full max-w-full overflow-x-auto" style={{ maxHeight: "calc(100vh - 300px)" }}>
+          <div className="w-full max-w-full overflow-x-auto" style={{ maxHeight: "calc(100vh - 300px)", minWidth: "350px", minHeight: "250px" }}>
             <ChartContainer config={balanceConfig} className="h-[250px] sm:h-[280px] w-full min-w-[350px] sm:min-w-[600px] max-w-full">
               <LineChart data={monthlyData} accessibilityLayer>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />

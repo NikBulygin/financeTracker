@@ -6,6 +6,7 @@ import { useDriveStore } from "@/store/driveStore";
 import { useToastStore } from "@/store/toastStore";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
+import { getCSV, stringifyCSV } from "@/lib/csv";
 
 export default function DriveSync() {
   const { session } = useAuthStore();
@@ -42,8 +43,16 @@ export default function DriveSync() {
     setStatus("syncing");
 
     try {
+      // Получаем CSV данные на клиенте
+      const csvData = await getCSV(session.user.email);
+      const csvContent = stringifyCSV(csvData);
+
       const response = await fetch("/api/drive/save", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ csvContent }),
       });
 
       const data = await response.json();

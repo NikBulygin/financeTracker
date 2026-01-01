@@ -64,12 +64,23 @@ export function useAutoDriveSync(enabled: boolean = true) {
       return;
     }
 
+    // Простая функция хеширования для Unicode строк
+    const simpleHash = (str: string): string => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return Math.abs(hash).toString(36);
+    };
+
     // Функция для проверки изменений
     const checkForChanges = async () => {
       try {
         const csvData = await getCSV(session.user.email!);
         const dataString = JSON.stringify(csvData);
-        const dataHash = btoa(dataString).substring(0, 32); // Простой хеш
+        const dataHash = simpleHash(dataString);
 
         if (lastDataHashRef.current === null) {
           // Первая загрузка - сохраняем хеш
