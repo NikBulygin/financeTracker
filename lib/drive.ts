@@ -16,6 +16,8 @@ export interface DriveSyncStatus {
 
 const DRIVE_API_BASE = "https://www.googleapis.com/drive/v3";
 const DRIVE_UPLOAD_API = "https://www.googleapis.com/upload/drive/v3";
+const DB_NAME = "CSVStorage";
+const DB_VERSION = 2; // Версия IndexedDB (должна совпадать с lib/csv.ts)
 
 // Получение информации о файле по ID
 export async function getDriveFileInfo(
@@ -164,11 +166,10 @@ export async function uploadToDrive(
 export async function saveDriveFileId(email: string, fileId: string): Promise<void> {
   if (typeof window === "undefined") return;
 
-  const DB_NAME = "CSVStorage";
   const STORE_NAME = "drive_files";
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 2);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {
@@ -193,11 +194,10 @@ export async function saveDriveFileId(email: string, fileId: string): Promise<vo
 export async function getDriveFileId(email: string): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
-  const DB_NAME = "CSVStorage";
   const STORE_NAME = "drive_files";
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 2);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => {

@@ -10,6 +10,7 @@ export interface CSVData {
 }
 
 const DB_NAME = "CSVStorage";
+const DB_VERSION = 2; // Версия IndexedDB
 const STORE_NAME = "csv_files";
 const getStorageKey = (email: string) => `csv_data_${email}`;
 const getAppVersion = () => process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
@@ -17,13 +18,18 @@ const getAppVersion = () => process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0";
 // IndexedDB helper
 const openDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);
     request.onupgradeneeded = (e) => {
       const db = (e.target as IDBOpenDBRequest).result;
+      // Создаем хранилище для CSV файлов
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
+      }
+      // Создаем хранилище для Drive файлов (если его еще нет)
+      if (!db.objectStoreNames.contains("drive_files")) {
+        db.createObjectStore("drive_files");
       }
     };
   });
