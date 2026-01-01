@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { getDriveFileId } from "@/lib/drive";
-import { getDriveFileInfo } from "@/lib/drive";
+import { getDriveFileInfo, findDriveFile } from "@/lib/drive";
 import { getToken } from "next-auth/jwt";
 
 export const dynamic = 'force-dynamic';
@@ -31,9 +30,12 @@ export async function GET(request: NextRequest) {
     }
 
     const email = session.user.email;
-    const fileId = await getDriveFileId(email);
+    const fileName = `finance_data_${email.replace("@", "_")}.csv`;
 
-    if (!fileId) {
+    // Ищем файл по имени в Google Drive
+    const existingFile = await findDriveFile(accessToken, fileName);
+
+    if (!existingFile) {
       return NextResponse.json({
         status: "idle",
         lastSyncTime: null,
@@ -43,14 +45,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем информацию о файле
-    const fileInfo = await getDriveFileInfo(accessToken, fileId);
+    const fileInfo = await getDriveFileInfo(accessToken, existingFile.fileId);
 
     return NextResponse.json({
       status: fileInfo ? "success" : "idle",
-      lastSyncTime: fileInfo?.modifiedTime || null,
+      lastSyncTime: fileInfo?.modifiedTime || existingFile.modifiedTime || null,
       error: null,
-      fileId: fileId,
-      webViewLink: fileInfo?.webViewLink || null,
+      fileId: existingFile.fileId,
+      webViewLink: fileInfo?.webViewLink || existingFile.webViewLink || null,
     });
   } catch (error) {
     console.error("Error getting drive status:", error);

@@ -89,20 +89,34 @@ export default function DriveSync() {
       return;
     }
 
-    if (!fileId) {
-      addToast("Файл не найден в Drive. Сначала сохраните файл.", "error");
-      return;
-    }
-
     setDownloading(true);
+    setStatus("syncing");
 
     try {
+      // Сначала проверяем статус, чтобы получить fileId если он есть
+      let fileIdToUse = fileId;
+      
+      if (!fileIdToUse) {
+        const statusResponse = await fetch("/api/drive/status");
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          if (statusData.fileId) {
+            fileIdToUse = statusData.fileId;
+            updateFromResponse({ fileId: statusData.fileId });
+          }
+        }
+      }
+
+      if (!fileIdToUse) {
+        throw new Error("Файл не найден в Google Drive. Сначала сохраните файл.");
+      }
+
       const response = await fetch("/api/drive/download", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fileId }),
+        body: JSON.stringify({ fileId: fileIdToUse }),
       });
 
       const data = await response.json();
@@ -173,20 +187,18 @@ export default function DriveSync() {
           <div className="flex gap-2">
             <button
               onClick={handleSave}
-              disabled={loading || status === "syncing"}
+              disabled={loading || status === "syncing" || downloading}
               className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors active:bg-[#383838] hover:bg-[#383838] dark:active:bg-[#ccc] dark:hover:bg-[#ccc] touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading || status === "syncing" ? "Сохранение..." : "Сохранить"}
             </button>
-            {fileId && (
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-2 text-sm font-medium transition-colors active:bg-zinc-100 dark:active:bg-zinc-900 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {downloading ? "Загрузка..." : "Скачать"}
-              </button>
-            )}
+            <button
+              onClick={handleDownload}
+              disabled={downloading || status === "syncing" || loading}
+              className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-2 text-sm font-medium transition-colors active:bg-zinc-100 dark:active:bg-zinc-900 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {downloading || status === "syncing" ? "Синхронизация..." : status === "idle" ? "Синхронизировать" : "Скачать"}
+            </button>
           </div>
         </div>
 

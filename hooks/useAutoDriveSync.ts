@@ -16,8 +16,10 @@ export function useAutoDriveSync(enabled: boolean = true) {
   const hasLoadedStatusRef = useRef(false);
   const emailRef = useRef<string | null>(null);
 
-  const downloadFromDrive = async () => {
-    if (!session?.user?.email || !fileId || isSyncingRef.current) {
+  const downloadFromDrive = async (targetFileId?: string) => {
+    const fileIdToUse = targetFileId || fileId;
+    
+    if (!session?.user?.email || !fileIdToUse || isSyncingRef.current) {
       return;
     }
 
@@ -30,7 +32,7 @@ export function useAutoDriveSync(enabled: boolean = true) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fileId }),
+        body: JSON.stringify({ fileId: fileIdToUse }),
       });
 
       const data = await response.json();
@@ -47,6 +49,7 @@ export function useAutoDriveSync(enabled: boolean = true) {
         status: "success",
         lastSyncTime: new Date().toISOString(),
         error: null,
+        fileId: fileIdToUse, // Сохраняем fileId в store
       });
 
       hasDownloadedRef.current = true;
@@ -168,9 +171,13 @@ export function useAutoDriveSync(enabled: boolean = true) {
           
           // Если есть fileId - загружаем файл из Drive
           if (data.fileId) {
+            // Сохраняем fileId в IndexedDB для будущего использования
+            const { saveDriveFileId } = await import("@/lib/drive");
+            await saveDriveFileId(session.user.email!, data.fileId);
+            
             // Сбрасываем флаг загрузки, чтобы загрузить файл
             hasDownloadedRef.current = false;
-            await downloadFromDrive();
+            await downloadFromDrive(data.fileId);
             // После загрузки обновляем хеш
             const csvData = await getCSV(session.user.email!);
             const dataString = JSON.stringify(csvData);
