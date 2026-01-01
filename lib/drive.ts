@@ -221,3 +221,30 @@ export async function getDriveFileId(email: string): Promise<string | null> {
   });
 }
 
+// Скачивание файла из Google Drive
+export async function downloadFromDrive(
+  accessToken: string,
+  fileId: string
+): Promise<string> {
+  try {
+    const response = await fetch(
+      `${DRIVE_API_BASE}/files/${fileId}?alt=media`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.statusText}`);
+    }
+
+    const content = await response.text();
+    return content;
+  } catch (error) {
+    console.error("Error downloading from drive:", error);
+    throw error;
+  }
+}
+

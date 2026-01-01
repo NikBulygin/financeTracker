@@ -6,13 +6,14 @@ import { useDriveStore } from "@/store/driveStore";
 import { useToastStore } from "@/store/toastStore";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
-import { getCSV, stringifyCSV } from "@/lib/csv";
+import { getCSV, stringifyCSV, saveCSV, parseCSV } from "@/lib/csv";
 
 export default function DriveSync() {
   const { session } = useAuthStore();
   const { status, lastSyncTime, error, fileId, setStatus, updateFromResponse } = useDriveStore();
   const { addToast } = useToastStore();
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const loadStatus = async () => {
     if (!session?.user?.email) return;
@@ -81,6 +82,57 @@ export default function DriveSync() {
     }
   };
 
+  const handleDownload = async () => {
+    if (!session?.user?.email) {
+      addToast("Необходима авторизация", "error");
+      return;
+    }
+
+    if (!fileId) {
+      addToast("Файл не найден в Drive. Сначала сохраните файл.", "error");
+      return;
+    }
+
+    setDownloading(true);
+
+    try {
+      const response = await fetch("/api/drive/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fileId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Ошибка скачивания");
+      }
+
+      // Парсим CSV и сохраняем в IndexedDB
+      const csvData = parseCSV(data.csvContent);
+      await saveCSV(session.user.email, csvData);
+
+      updateFromResponse({
+        status: "success",
+        lastSyncTime: new Date().toISOString(),
+        error: null,
+      });
+
+      addToast("Файл успешно загружен из Google Drive", "success");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+      updateFromResponse({
+        status: "error",
+        error: errorMessage,
+      });
+      addToast(`Ошибка загрузки: ${errorMessage}`, "error");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const getStatusLabel = () => {
     switch (status) {
       case "syncing":
@@ -117,13 +169,24 @@ export default function DriveSync() {
             <p className="text-sm font-medium">Статус</p>
             <p className={`text-sm ${getStatusColor()}`}>{getStatusLabel()}</p>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={loading || status === "syncing"}
-            className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors active:bg-[#383838] hover:bg-[#383838] dark:active:bg-[#ccc] dark:hover:bg-[#ccc] touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading || status === "syncing" ? "Сохранение..." : "Сохранить в Drive"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSave}
+              disabled={loading || status === "syncing"}
+              className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors active:bg-[#383838] hover:bg-[#383838] dark:active:bg-[#ccc] dark:hover:bg-[#ccc] touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading || status === "syncing" ? "Сохранение..." : "Сохранить"}
+            </button>
+            {fileId && (
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className="rounded-lg border border-zinc-200 dark:border-zinc-800 px-4 py-2 text-sm font-medium transition-colors active:bg-zinc-100 dark:active:bg-zinc-900 touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {downloading ? "Загрузка..." : "Скачать"}
+              </button>
+            )}
+          </div>
         </div>
 
         {lastSyncTime && (
