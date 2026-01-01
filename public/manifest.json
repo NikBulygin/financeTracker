@@ -3,6 +3,7 @@
   "short_name": "Finance",
   "description": "Финансовое приложение с Google Auth и CSV",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
@@ -20,6 +21,9 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [],
+  "categories": ["finance", "productivity"],
+  "prefer_related_applications": false
 }
 
