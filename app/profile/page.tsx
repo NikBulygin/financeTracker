@@ -10,6 +10,8 @@ import { useToastStore } from "@/store/toastStore";
 import { getCSV, getVersion } from "@/lib/csv";
 import DriveSync from "@/components/DriveSync";
 import { useAutoDriveSync } from "@/hooks/useAutoDriveSync";
+import { getDefaultCurrency, setDefaultCurrency, getCurrencySymbol } from "@/lib/currency";
+import { SUPPORTED_CURRENCIES } from "@/lib/constants";
 
 export default function ProfilePage() {
   return (
@@ -24,6 +26,7 @@ function ProfileContent() {
   const [csvPath, setCsvPath] = useState<string>("");
   const [csvVersion, setCsvVersion] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [defaultCurrency, setDefaultCurrencyState] = useState<string>("USD");
   const { addToast } = useToastStore();
   
   // Включаем автоматическую синхронизацию
@@ -44,6 +47,9 @@ function ProfileContent() {
         setCsvVersion(getVersion(data));
         // Путь к файлу в IndexedDB
         setCsvPath(`IndexedDB: CSVStorage/csv_files/csv_data_${email}`);
+        // Загружаем стандартную валюту
+        const currency = getDefaultCurrency(email);
+        setDefaultCurrencyState(currency);
       } catch (error) {
         console.error("Error loading CSV info:", error);
       } finally {
@@ -61,6 +67,13 @@ function ProfileContent() {
     // Здесь можно добавить сохранение пути в localStorage или другое хранилище
     localStorage.setItem(`csv_path_${email}`, csvPath);
     addToast("Путь к файлу сохранен", "success");
+  };
+
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCurrency = e.target.value;
+    setDefaultCurrencyState(newCurrency);
+    setDefaultCurrency(email, newCurrency);
+    addToast(`Стандартная валюта изменена на ${getCurrencySymbol(newCurrency)}`, "success");
   };
 
   const savedPath = typeof window !== "undefined" ? localStorage.getItem(`csv_path_${email}`) : null;
@@ -120,6 +133,24 @@ function ProfileContent() {
                   Текущий путь: {displayPath}
                 </p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Стандартная валюта</label>
+              <select
+                value={defaultCurrency}
+                onChange={handleCurrencyChange}
+                className="w-full p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm"
+              >
+                {SUPPORTED_CURRENCIES.map((curr) => (
+                  <option key={curr.code} value={curr.code}>
+                    {curr.name} ({getCurrencySymbol(curr.code)})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
+                Все суммы будут отображаться в этой валюте
+              </p>
             </div>
 
             {loading ? (

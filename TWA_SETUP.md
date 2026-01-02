@@ -61,3 +61,4 @@ NextAuth требует серверный API route (`/api/auth/[...nextauth]`)
 - ✅ PWA манифест настроен правильно
 - ⚠️ NextAuth API требует внешний сервер
 
+

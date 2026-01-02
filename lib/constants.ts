@@ -30,3 +30,4 @@ export const SUPPORTED_STOCKS = [
   "SBER", "GAZP", "YNDX", "AAPL", "GOOGL", "MSFT", "TSLA", "NVDA"
 ] as const;
 
+

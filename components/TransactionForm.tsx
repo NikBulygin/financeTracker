@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { useToastStore } from "@/store/toastStore";
 import { convertToUSD, getCryptoRate, getExchangeRates } from "@/lib/exchange";
 import { CURRENCY_CODES, CRYPTO_CODES, SUPPORTED_STOCKS } from "@/lib/constants";
+import { getDefaultCurrency } from "@/lib/currency";
 
 interface TransactionFormProps {
   email: string;
@@ -58,6 +59,14 @@ export default function TransactionForm({
 
   const categories = commonCategories[type] || [];
 
+  // Инициализация стандартной валюты при создании новой транзакции
+  useEffect(() => {
+    if (!transaction && email) {
+      const defaultCurrency = getDefaultCurrency(email);
+      setCurrency(defaultCurrency);
+    }
+  }, [email, transaction]);
+
   // Инициализация полей при редактировании
   useEffect(() => {
     if (transaction) {
@@ -65,9 +74,9 @@ export default function TransactionForm({
       setFromAsset(transaction.from_asset || "");
       setToAsset(transaction.to_asset || "");
       setExchangeRate(transaction.exchange_rate?.toString() || "");
-      setCurrency(transaction.currency || "RUB");
+      setCurrency(transaction.currency || getDefaultCurrency(email));
     }
-  }, [transaction]);
+  }, [transaction, email]);
 
   // Правило: инвестиции не могут быть отложенными
   useEffect(() => {

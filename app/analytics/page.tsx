@@ -7,10 +7,11 @@ import { useAuthStore } from "@/store/authStore";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BottomNav from "@/components/BottomNav";
 import { getTransactions } from "@/lib/transactions";
-import { groupByMonth, groupByCategory, calculateTotals } from "@/lib/analytics";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend } from "@/components/ui/chart";
+import { groupByMonth, groupByCategory, calculateTotals, MonthlyData } from "@/lib/analytics";
+import { ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid } from "recharts";
 import type { ChartConfig } from "@/components/ui/chart";
+import { getDefaultCurrency, formatCurrency, getCurrencySymbol } from "@/lib/currency";
 
 export default function AnalyticsPage() {
   return (
@@ -38,6 +39,61 @@ const balanceConfig = {
   },
 } satisfies ChartConfig;
 
+// Кастомный tooltip с разбивкой по валютам
+function CurrencyTooltipContent({ active, payload, label, defaultCurrency }: any) {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  const data = payload[0]?.payload as MonthlyData | undefined;
+  
+  return (
+    <div className="grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
+      {label && <div className="font-medium">{label}</div>}
+      <div className="grid gap-1.5">
+        {payload.map((item: any, index: number) => {
+          const value = item.value || 0;
+          const dataKey = item.dataKey;
+          
+          return (
+            <div key={index} className="flex items-center gap-2">
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                style={{ backgroundColor: item.color }}
+              />
+              <div className="flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-muted-foreground">{item.name || dataKey}:</span>
+                  <span className="font-medium">{formatCurrency(value, defaultCurrency)}</span>
+                </div>
+                {/* Показываем разбивку по валютам */}
+                {dataKey === "income" && data?.incomeBreakdown && data.incomeBreakdown.length > 0 && (
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {data.incomeBreakdown.map((bd, i) => (
+                      <div key={i}>
+                        +{formatCurrency(bd.amount, bd.currency)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dataKey === "expense" && data?.expenseBreakdown && data.expenseBreakdown.length > 0 && (
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {data.expenseBreakdown.map((bd, i) => (
+                      <div key={i}>
+                        -{formatCurrency(bd.amount, bd.currency)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function AnalyticsContent() {
   const { session } = useAuthStore();
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -45,6 +101,12 @@ function AnalyticsContent() {
   const [months, setMonths] = useState(6);
   const [includePlanned, setIncludePlanned] = useState(false);
   const [forwardRange, setForwardRange] = useState(false);
+  const [defaultCurrency, setDefaultCurrency] = useState<string>("USD");
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [totals, setTotals] = useState({ totalIncome: 0, totalExpense: 0, balance: 0 });
+  const [incomeCategories, setIncomeCategories] = useState<any[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<any[]>([]);
+  const [calculating, setCalculating] = useState(false);
 
   const loadData = async () => {
     if (!session?.user?.email) return;
@@ -59,15 +121,44 @@ function AnalyticsContent() {
   };
 
   useEffect(() => {
+    if (session?.user?.email) {
+      const currency = getDefaultCurrency(session.user.email);
+      setDefaultCurrency(currency);
+    }
+  }, [session]);
+
+  useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
-  const monthlyData = groupByMonth(transactions, months, includePlanned, forwardRange);
-  const totals = calculateTotals(transactions, includePlanned);
-
-  const incomeCategories = groupByCategory(transactions, "income", includePlanned).slice(0, 5);
-  const expenseCategories = groupByCategory(transactions, "expense", includePlanned).slice(0, 5);
+  // Пересчитываем аналитику при изменении параметров
+  useEffect(() => {
+    const calculateAnalytics = async () => {
+      if (transactions.length === 0 || !defaultCurrency) return;
+      
+      setCalculating(true);
+      try {
+        const [monthly, totalsData, incomeCats, expenseCats] = await Promise.all([
+          groupByMonth(transactions, months, includePlanned, forwardRange, defaultCurrency),
+          calculateTotals(transactions, includePlanned, defaultCurrency),
+          groupByCategory(transactions, "income", includePlanned, defaultCurrency),
+          groupByCategory(transactions, "expense", includePlanned, defaultCurrency),
+        ]);
+        
+        setMonthlyData(monthly);
+        setTotals(totalsData);
+        setIncomeCategories(incomeCats.slice(0, 5));
+        setExpenseCategories(expenseCats.slice(0, 5));
+      } catch (error) {
+        console.error("Error calculating analytics:", error);
+      } finally {
+        setCalculating(false);
+      }
+    };
+    
+    calculateAnalytics();
+  }, [transactions, months, includePlanned, forwardRange, defaultCurrency]);
 
   const COLORS = [
     "hsl(var(--chart-1))", // Зеленый
@@ -155,13 +246,13 @@ function AnalyticsContent() {
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">Доходы</p>
             <p className="text-2xl font-semibold text-green-600 dark:text-green-400">
-              {totals.totalIncome.toLocaleString("ru-RU")} ₽
+              {calculating ? "..." : formatCurrency(totals.totalIncome, defaultCurrency)}
             </p>
           </div>
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">Расходы</p>
             <p className="text-2xl font-semibold text-red-600 dark:text-red-400">
-              {totals.totalExpense.toLocaleString("ru-RU")} ₽
+              {calculating ? "..." : formatCurrency(totals.totalExpense, defaultCurrency)}
             </p>
           </div>
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-4">
@@ -173,7 +264,7 @@ function AnalyticsContent() {
                   : "text-red-600 dark:text-red-400"
               }`}
             >
-              {totals.balance.toLocaleString("ru-RU")} ₽
+              {calculating ? "..." : formatCurrency(totals.balance, defaultCurrency)}
             </p>
           </div>
         </div>
@@ -200,7 +291,7 @@ function AnalyticsContent() {
                   className="text-xs"
                   width={60}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip content={<CurrencyTooltipContent defaultCurrency={defaultCurrency} />} />
                 <ChartLegend />
                 <Bar dataKey="income" fill="hsl(var(--chart-1))" radius={4} />
                 <Bar dataKey="expense" fill="hsl(var(--chart-2))" radius={4} />
@@ -231,7 +322,7 @@ function AnalyticsContent() {
                   className="text-xs"
                   width={60}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip content={<CurrencyTooltipContent defaultCurrency={defaultCurrency} />} />
                 <ChartLegend />
                 <Line
                   type="monotone"
@@ -287,7 +378,7 @@ function AnalyticsContent() {
                         />
                       ))}
                     </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={<CurrencyTooltipContent defaultCurrency={defaultCurrency} />} />
                   </PieChart>
                 </ChartContainer>
               </div>
@@ -338,7 +429,7 @@ function AnalyticsContent() {
                         />
                       ))}
                     </Pie>
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={<CurrencyTooltipContent defaultCurrency={defaultCurrency} />} />
                   </PieChart>
                 </ChartContainer>
               </div>

@@ -7,7 +7,7 @@ export interface Alert {
   message: string;
 }
 
-export function getAlerts(transactions: Transaction[]): Alert[] {
+export async function getAlerts(transactions: Transaction[], defaultCurrency?: string): Promise<Alert[]> {
   const alerts: Alert[] = [];
   const now = new Date();
   const currentMonthStart = startOfMonth(now);
@@ -22,8 +22,8 @@ export function getAlerts(transactions: Transaction[]): Alert[] {
     return txDate >= currentMonthStart && txDate <= currentMonthEnd;
   });
 
-  const currentTotals = calculateTotals(currentMonthTx);
-  const currentRatio = calculateExpenseRatio(currentMonthTx);
+  const currentTotals = await calculateTotals(currentMonthTx, false, defaultCurrency);
+  const currentRatio = await calculateExpenseRatio(currentMonthTx, undefined, defaultCurrency);
 
   // Предупреждение если расходы >= доходам
   if (currentTotals.totalExpense >= currentTotals.totalIncome && currentTotals.totalIncome > 0) {
@@ -47,8 +47,8 @@ export function getAlerts(transactions: Transaction[]): Alert[] {
     return txDate >= lastMonthStart && txDate <= lastMonthEnd;
   });
 
-  const lastMonthTotals = calculateTotals(lastMonthTx);
-  const lastMonthRatio = calculateExpenseRatio(lastMonthTx);
+  const lastMonthTotals = await calculateTotals(lastMonthTx, false, defaultCurrency);
+  const lastMonthRatio = await calculateExpenseRatio(lastMonthTx, undefined, defaultCurrency);
 
   // Сравнение с предыдущим месяцем
   if (lastMonthTotals.totalIncome > 0 && currentTotals.totalIncome > 0) {
@@ -63,4 +63,5 @@ export function getAlerts(transactions: Transaction[]): Alert[] {
 
   return alerts;
 }
+
 

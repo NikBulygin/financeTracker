@@ -11,6 +11,7 @@ import AlertBanner from "@/components/AlertBanner";
 import { useAuthStore } from "@/store/authStore";
 import { getTransactions } from "@/lib/transactions";
 import { getAlerts } from "@/lib/alerts";
+import { getDefaultCurrency } from "@/lib/currency";
 
 export default function Home() {
   return (
@@ -31,7 +32,8 @@ function HomeContent() {
     if (!session?.user?.email) return;
     try {
       const transactions = await getTransactions(session.user.email);
-      const alertData = getAlerts(transactions);
+      const defaultCurrency = getDefaultCurrency(session.user.email);
+      const alertData = await getAlerts(transactions, defaultCurrency);
       setAlerts(alertData);
     } catch (error) {
       console.error("Error loading alerts:", error);

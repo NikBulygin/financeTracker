@@ -16,6 +16,8 @@ import {
 } from "@/lib/transactions";
 import { format, parseISO } from "date-fns";
 import { useToastStore } from "@/store/toastStore";
+import { getDefaultCurrency, formatCurrency, getCurrencySymbol } from "@/lib/currency";
+import { convertCurrency } from "@/lib/exchange";
 
 export default function TransactionsPage() {
   return (
@@ -31,6 +33,9 @@ function TransactionsContent() {
   const [filtered, setFiltered] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [defaultCurrency, setDefaultCurrency] = useState<string>("USD");
+  const [convertedAmounts, setConvertedAmounts] = useState<Map<string, number>>(new Map());
+  const [converting, setConverting] = useState(false);
   const [filters, setFilters] = useState<{
     type?: TransactionType;
     search?: string;
@@ -51,9 +56,46 @@ function TransactionsContent() {
   };
 
   useEffect(() => {
+    if (session?.user?.email) {
+      const currency = getDefaultCurrency(session.user.email);
+      setDefaultCurrency(currency);
+    }
+  }, [session]);
+
+  useEffect(() => {
     loadTransactions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
+
+  // Конвертация сумм в стандартную валюту
+  useEffect(() => {
+    const convertAmounts = async () => {
+      if (!session?.user?.email || filtered.length === 0) return;
+      
+      setConverting(true);
+      const amounts = new Map<string, number>();
+      
+      for (const tx of filtered) {
+        const txCurrency = tx.currency || defaultCurrency;
+        if (txCurrency === defaultCurrency) {
+          amounts.set(tx.id, tx.amount);
+        } else {
+          try {
+            const converted = await convertCurrency(tx.amount, txCurrency, defaultCurrency);
+            amounts.set(tx.id, converted);
+          } catch (error) {
+            console.error(`Error converting ${tx.id}:`, error);
+            amounts.set(tx.id, tx.amount);
+          }
+        }
+      }
+      
+      setConvertedAmounts(amounts);
+      setConverting(false);
+    };
+    
+    convertAmounts();
+  }, [filtered, defaultCurrency, session]);
 
   useEffect(() => {
     const filtered = filterTransactions(transactions, filters);
@@ -184,11 +226,22 @@ function TransactionsContent() {
                         )}
                       </div>
                       <p className="text-sm font-semibold mb-1">
-                        {tx.amount.toLocaleString("ru-RU", {
-                          style: "currency",
-                          currency: "RUB",
-                          minimumFractionDigits: 0,
-                        })}
+                        {(() => {
+                          const txCurrency = tx.currency || defaultCurrency;
+                          const convertedAmount = convertedAmounts.get(tx.id) ?? tx.amount;
+                          const isConverted = txCurrency !== defaultCurrency;
+                          
+                          if (converting && isConverted) {
+                            return "Конвертация...";
+                          }
+                          
+                          const mainAmount = formatCurrency(convertedAmount, defaultCurrency);
+                          if (isConverted) {
+                            const originalAmount = formatCurrency(tx.amount, txCurrency);
+                            return `${mainAmount} (${originalAmount})`;
+                          }
+                          return mainAmount;
+                        })()}
                       </p>
                       {tx.description && (
                         <p className="text-sm text-zinc-700 dark:text-zinc-300 mb-1">
